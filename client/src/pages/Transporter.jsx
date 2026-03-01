@@ -40,9 +40,9 @@ function Transporter() {
           </span>
           <button
             onClick={() => navigate("/")}
-            className="text-sm text-[#0D5D56] hover:underline"
+            className="flex items-center gap-2 text-sm font-semibold text-[#0D5D56] hover:text-[#329F5B] transition"
           >
-            Switch Role
+            ← Back to Landing
           </button>
         </div>
       </div>
