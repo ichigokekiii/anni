@@ -1,20 +1,17 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Landing from "./pages/Landing";
+import Farmer from "./pages/Farmer";
+import Restaurant from "./pages/Restaurant";
 
 function App() {
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    axios.get("http://localhost:5050/")
-      .then(res => setMessage(res.data.message))
-      .catch(err => console.error(err));
-  }, []);
-
   return (
-    <div>
-      <h1>ANNI MVP 🚜</h1>
-      <p>{message}</p>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/farmer" element={<Farmer />} />
+        <Route path="/restaurant" element={<Restaurant />} />
+      </Routes>
+    </Router>
   );
 }
 

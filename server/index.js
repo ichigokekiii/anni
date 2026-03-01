@@ -1,16 +1,147 @@
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT || 5050;
+const PORT = 5050;
 
 app.use(cors());
 app.use(express.json());
 
-// Test route
+/*
+  Temporary In-Memory Storage
+*/
+let harvests = [];
+let clusters = [];
+let orders = [];
+
+/*
+  1️⃣ Add Harvest
+*/
+app.post("/harvest", (req, res) => {
+  const { farmerName, crop, quantity, city, lat, lng } = req.body;
+
+  if (!farmerName || !crop || !quantity || !city || !lat || !lng) {
+    return res.status(400).json({ message: "Missing fields" });
+  }
+
+  const newHarvest = {
+    id: harvests.length + 1,
+    farmerName,
+    crop,
+    quantity: Number(quantity),
+    city,
+    lat,
+    lng,
+  };
+
+  harvests.push(newHarvest);
+
+  res.json({ message: "Harvest added", data: newHarvest });
+});
+
+/*
+  2️⃣ Generate Clusters (Crop + City)
+*/
+app.get("/clusters", (req, res) => {
+  const grouped = {};
+
+  harvests.forEach((h) => {
+    const key = `${h.crop}-${h.city}`;
+
+    if (!grouped[key]) {
+      grouped[key] = [];
+    }
+
+    grouped[key].push(h);
+  });
+
+  clusters = Object.keys(grouped).map((key) => {
+    const farmers = grouped[key];
+    const totalQuantity = farmers.reduce(
+      (sum, f) => sum + f.quantity,
+      0
+    );
+
+    return {
+      crop: farmers[0].crop,
+      city: farmers[0].city,
+      totalQuantity,
+      farmers,
+    };
+  });
+
+  res.json(clusters);
+});
+
+/*
+  3️⃣ Place Order
+*/
+app.post("/order", (req, res) => {
+  const { crop, city, quantityNeeded } = req.body;
+
+  const cluster = clusters.find(
+    (c) => c.crop === crop && c.city === city
+  );
+
+  if (!cluster) {
+    return res.status(400).json({ message: "No cluster found" });
+  }
+
+  if (cluster.totalQuantity < quantityNeeded) {
+    return res.status(400).json({ message: "Not enough supply" });
+  }
+
+  const newOrder = {
+    id: orders.length + 1,
+    crop,
+    city,
+    quantityNeeded,
+    farmers: cluster.farmers,
+  };
+
+  orders.push(newOrder);
+
+  res.json({
+    message: "Order matched successfully",
+    order: newOrder,
+  });
+});
+
+/*
+  4️⃣ Cost Sharing
+*/
+app.get("/cost/:crop/:city", (req, res) => {
+  const { crop, city } = req.params;
+
+  const cluster = clusters.find(
+    (c) => c.crop === crop && c.city === city
+  );
+
+  if (!cluster) {
+    return res.status(404).json({ message: "Cluster not found" });
+  }
+
+  const transportCost = 6000;
+
+  const breakdown = cluster.farmers.map((f) => ({
+    farmerName: f.farmerName,
+    contribution: (
+      (f.quantity / cluster.totalQuantity) *
+      transportCost
+    ).toFixed(2),
+  }));
+
+  res.json({
+    totalTransportCost: transportCost,
+    breakdown,
+  });
+});
+
+/*
+  Test Route
+*/
 app.get("/", (req, res) => {
-  res.json({ message: "ANNI backend is running 🚜" });
+  res.json({ message: "ANNI Backend Running 🚜" });
 });
 
 app.listen(PORT, () => {
